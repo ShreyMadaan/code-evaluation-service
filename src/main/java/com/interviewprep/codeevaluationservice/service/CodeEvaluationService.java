@@ -17,18 +17,22 @@ public class CodeEvaluationService {
     public CodeSubmission submitCode(CodeSubmission codeSubmission) {
         codeSubmission.setStatus("Pending");
 
-        String filePath = FileUtil.saveCodeToFile(codeSubmission.getCode(), "Main.java");
-
         DockerRunner dockerRunner = new DockerRunner();
         String output;
+        String filePath;
         switch (codeSubmission.getLanguage().toLowerCase()) {
             case "java":
                         filePath = FileUtil.saveCodeToFile(codeSubmission.getCode(), "Main.java");
                         output = dockerRunner.runJavaCode(filePath);
                         break;
             case "python":
-                        filePath = FileUtil.saveCodeToFile(codeSubmission.getCode(), "Main.py");
+                        filePath = FileUtil.saveCodeToFile(codeSubmission.getCode(), "main.py");
                         output = dockerRunner.runPythonCode(filePath);
+                        break;
+            case "cpp":
+            case "c++":
+                        filePath = FileUtil.saveCodeToFile(codeSubmission.getCode(), "main.cpp");
+                        output = dockerRunner.runCppCode(filePath);
                         break;
             default:
                         throw new IllegalArgumentException("Unsupported language: " + codeSubmission.getLanguage());
