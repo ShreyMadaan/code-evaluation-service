@@ -2,6 +2,7 @@ package com.interviewprep.codeevaluationservice.service;
 
 import com.interviewprep.codeevaluationservice.model.CodeSubmission;
 import com.interviewprep.codeevaluationservice.repository.CodeSubmissionRepository;
+import com.interviewprep.codeevaluationservice.util.DockerRunner;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -15,7 +16,10 @@ public class CodeEvaluationService {
     public CodeSubmission submitCode(CodeSubmission codeSubmission) {
         codeSubmission.setStatus("Pending");
 
-        codeSubmission.setOutput("Code execution is not implemented yet.");
+        DockerRunner dockerRunner = new DockerRunner();
+        String output = dockerRunner.runJavaCode("/tmp/Main.java");
+
+        codeSubmission.setOutput(output);
         codeSubmission.setStatus("Success");
         return codeSubmissionRepository.save(codeSubmission);
     }
