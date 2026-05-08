@@ -2,7 +2,7 @@ package com.interviewprep.codeevaluationservice.service;
 
 import com.interviewprep.codeevaluationservice.model.CodeSubmission;
 import com.interviewprep.codeevaluationservice.repository.CodeSubmissionRepository;
-import com.interviewprep.codeevaluationservice.util.DockerRunner;
+import com.interviewprep.codeevaluationservice.docker.DockerRunner;
 import com.interviewprep.codeevaluationservice.util.FileUtil;
 import org.springframework.stereotype.Service;
 

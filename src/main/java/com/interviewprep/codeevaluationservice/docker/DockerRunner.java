@@ -1,10 +1,11 @@
-package com.interviewprep.codeevaluationservice.util;
+package com.interviewprep.codeevaluationservice.docker;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.Frame;
 import com.github.dockerjava.api.model.HostConfig;
+import com.github.dockerjava.api.model.StreamType;
 import com.github.dockerjava.api.model.Volume;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.core.command.LogContainerResultCallback;
@@ -20,6 +21,8 @@ public class DockerRunner {
         this.dockerClient = DockerClientBuilder.getInstance().build();
     }
 
+
+
     public String runJavaCode(String codeFilePath){
         File codeFile = new File(codeFilePath);
         File sourceDir = codeFile.getParentFile();
@@ -29,16 +32,20 @@ public class DockerRunner {
 
         Volume volume = new Volume("/app");
         HostConfig hostConfig = HostConfig.newHostConfig()
-                .withBinds(new Bind(sourceDir.getAbsolutePath(), volume));
+                .withBinds(new Bind(sourceDir.getAbsolutePath(), volume))
+                .withMemory(256 * 1024 * 1024L)  // 256 MB memory limit
+                .withCpuShares(512);              // half CPU share
 
         CreateContainerResponse container = dockerClient.createContainerCmd("openjdk:17")
                 .withWorkingDir("/app")
                 .withHostConfig(hostConfig)
+                .withNetworkDisabled(true)        // disable networking
                 .withCmd("bash", "-c", "javac Main.java && java Main")
                 .exec();
 
         String containerId = container.getId();
         StringBuilder output = new StringBuilder();
+        StringBuilder errorOutput = new StringBuilder();
 
         try {
             dockerClient.startContainerCmd(containerId).exec();
@@ -46,7 +53,12 @@ public class DockerRunner {
             try (LogContainerResultCallback callback = new LogContainerResultCallback() {
                 @Override
                 public void onNext(Frame frame) {
-                    output.append(new String(frame.getPayload(), StandardCharsets.UTF_8));
+                    String payload = new String(frame.getPayload(), StandardCharsets.UTF_8);
+                    if (frame.getStreamType() == StreamType.STDERR) {
+                        errorOutput.append(payload);
+                    } else {
+                        output.append(payload);
+                    }
                     super.onNext(frame);
                 }
             }) {
@@ -63,6 +75,10 @@ public class DockerRunner {
                 throw new RuntimeException("Failed to read container logs", e);
             }
 
+            // Return combined output, with errors marked
+            if (!errorOutput.isEmpty()) {
+                return "STDOUT:\n" + output + "\nSTDERR:\n" + errorOutput;
+            }
             return output.toString();
         } finally {
             dockerClient.removeContainerCmd(containerId).withForce(true).exec();
@@ -78,16 +94,20 @@ public class DockerRunner {
 
         Volume volume = new Volume("/app");
         HostConfig hostConfig = HostConfig.newHostConfig()
-                .withBinds(new Bind(sourceDir.getAbsolutePath(), volume));
+                .withBinds(new Bind(sourceDir.getAbsolutePath(), volume))
+                .withMemory(256 * 1024 * 1024L)  // 256 MB memory limit
+                .withCpuShares(512);              // half CPU share
 
         CreateContainerResponse container = dockerClient.createContainerCmd("python:3.11")
                 .withWorkingDir("/app")
                 .withHostConfig(hostConfig)
+                .withNetworkDisabled(true)        // disable networking
                 .withCmd("python", codeFile.getName())
                 .exec();
 
         String containerId = container.getId();
         StringBuilder output = new StringBuilder();
+        StringBuilder errorOutput = new StringBuilder();
 
         try {
             dockerClient.startContainerCmd(containerId).exec();
@@ -95,7 +115,12 @@ public class DockerRunner {
             try (LogContainerResultCallback callback = new LogContainerResultCallback() {
                 @Override
                 public void onNext(Frame frame) {
-                    output.append(new String(frame.getPayload(), StandardCharsets.UTF_8));
+                    String payload = new String(frame.getPayload(), StandardCharsets.UTF_8);
+                    if (frame.getStreamType() == StreamType.STDERR) {
+                        errorOutput.append(payload);
+                    } else {
+                        output.append(payload);
+                    }
                     super.onNext(frame);
                 }
             }) {
@@ -112,6 +137,10 @@ public class DockerRunner {
                 throw new RuntimeException("Failed to read container logs", e);
             }
 
+            // Return combined output, with errors marked
+            if (!errorOutput.isEmpty()) {
+                return "STDOUT:\n" + output + "\nSTDERR:\n" + errorOutput;
+            }
             return output.toString();
         } finally {
             dockerClient.removeContainerCmd(containerId).withForce(true).exec();
@@ -127,16 +156,20 @@ public class DockerRunner {
 
         Volume volume = new Volume("/app");
         HostConfig hostConfig = HostConfig.newHostConfig()
-                .withBinds(new Bind(sourceDir.getAbsolutePath(), volume));
+                .withBinds(new Bind(sourceDir.getAbsolutePath(), volume))
+                .withMemory(256 * 1024 * 1024L)  // 256 MB memory limit
+                .withCpuShares(512);              // half CPU share
 
         CreateContainerResponse container = dockerClient.createContainerCmd("gcc:latest")
                 .withWorkingDir("/app")
                 .withHostConfig(hostConfig)
+                .withNetworkDisabled(true)        // disable networking
                 .withCmd("bash", "-c", "g++ " + codeFile.getName() + " -o /app/a.out && /app/a.out")
                 .exec();
 
         String containerId = container.getId();
         StringBuilder output = new StringBuilder();
+        StringBuilder errorOutput = new StringBuilder();
 
         try {
             dockerClient.startContainerCmd(containerId).exec();
@@ -144,7 +177,12 @@ public class DockerRunner {
             try (LogContainerResultCallback callback = new LogContainerResultCallback() {
                 @Override
                 public void onNext(Frame frame) {
-                    output.append(new String(frame.getPayload(), StandardCharsets.UTF_8));
+                    String payload = new String(frame.getPayload(), StandardCharsets.UTF_8);
+                    if (frame.getStreamType() == StreamType.STDERR) {
+                        errorOutput.append(payload);
+                    } else {
+                        output.append(payload);
+                    }
                     super.onNext(frame);
                 }
             }) {
@@ -161,6 +199,10 @@ public class DockerRunner {
                 throw new RuntimeException("Failed to read container logs", e);
             }
 
+            // Return combined output, with errors marked
+            if (!errorOutput.isEmpty()) {
+                return "STDOUT:\n" + output + "\nSTDERR:\n" + errorOutput;
+            }
             return output.toString();
         } finally {
             dockerClient.removeContainerCmd(containerId).withForce(true).exec();
